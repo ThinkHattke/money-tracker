@@ -55,17 +55,17 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        setData()
-//
-//        if(Check_SMS_READ(this@MainActivity)) {
-//            getSMSAndSaveInDB()
-//        } else {
-//            try {
-//                val permissions = arrayOf(Manifest.permission.READ_SMS)
-//                ActivityCompat.requestPermissions(this@MainActivity, permissions,0)
-//            } catch (e: Exception) {
-//            }
-//        }
+//        setData()
+
+        if(Check_SMS_READ(this@MainActivity)) {
+            getSMSAndSaveInDB()
+        } else {
+            try {
+                val permissions = arrayOf(Manifest.permission.READ_SMS)
+                ActivityCompat.requestPermissions(this@MainActivity, permissions,0)
+            } catch (e: Exception) {
+            }
+        }
 
     }
 
