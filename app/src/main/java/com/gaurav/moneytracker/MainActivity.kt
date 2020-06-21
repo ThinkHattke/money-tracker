@@ -2,6 +2,7 @@ package com.gaurav.moneytracker
 
 import android.Manifest
 import android.app.Activity
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
@@ -17,12 +18,14 @@ import com.gaurav.moneytracker.DB.SMS
 import com.gaurav.moneytracker.DB.SMSDB
 import kotlinx.android.synthetic.main.activity_main.*
 import timber.log.Timber
+import java.text.NumberFormat
+import java.text.SimpleDateFormat
 import java.util.*
 import java.util.regex.Matcher
 import java.util.regex.Pattern
 import kotlin.collections.ArrayList
 import kotlin.concurrent.thread
-
+import kotlin.math.roundToInt
 
 class MainActivity : AppCompatActivity() {
 
@@ -52,15 +55,17 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        if(Check_SMS_READ(this@MainActivity)) {
-            getSMSAndSaveInDB()
-        } else {
-            try {
-                val permissions = arrayOf(Manifest.permission.READ_SMS)
-                ActivityCompat.requestPermissions(this@MainActivity, permissions,0)
-            } catch (e: Exception) {
-            }
-        }
+        setData()
+//
+//        if(Check_SMS_READ(this@MainActivity)) {
+//            getSMSAndSaveInDB()
+//        } else {
+//            try {
+//                val permissions = arrayOf(Manifest.permission.READ_SMS)
+//                ActivityCompat.requestPermissions(this@MainActivity, permissions,0)
+//            } catch (e: Exception) {
+//            }
+//        }
 
     }
 
@@ -103,7 +108,7 @@ class MainActivity : AppCompatActivity() {
             }
             cur.close()
             SMSDB.getDatabase(this).SMSDao().insertAll(smsList)
-            getSMSTypes()
+            setData()
         }
     }
 
@@ -172,6 +177,41 @@ class MainActivity : AppCompatActivity() {
                .align(Align.CENTER)
 
            pie_chart.setChart(Pie)
+
+       }
+
+    }
+
+    private fun setData() {
+
+       runOnUiThread {
+
+           val smsDao = SMSDB.getDatabase(this).SMSDao()
+
+           val monthParse = SimpleDateFormat("MM")
+           val monthDisplay = SimpleDateFormat("MMMM")
+           val monthDate = monthParse.parse((Calendar.getInstance().get(Calendar.MONTH)+1).toString())
+           val monthValue = monthDisplay.format(monthDate)
+           month.text = monthValue
+
+           val debitSMS = smsDao.getSMSByType("Debit")
+           var debitAmount = 0.0
+           for (sms in debitSMS) {
+               val amount = sms.amount.toDouble()
+               debitAmount = debitAmount.plus(amount)
+           }
+
+           val debitString = NumberFormat.getNumberInstance(Locale.getDefault()).format(debitAmount.roundToInt())
+           amount.text = debitString
+
+           val list = smsDao.get5SMS()
+           val adapter = TransactionRCVAdapter(list)
+           transaction_rcv.adapter = adapter
+
+           more_transaction.setOnClickListener {
+               startActivity(Intent(this@MainActivity, AllSMS::class.java))
+               finish()
+           }
 
        }
 

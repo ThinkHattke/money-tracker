@@ -11,6 +11,10 @@ interface SMSDao {
     @Query("SELECT * FROM SMS")
     fun getAllSMS(): List<SMS>
 
+
+    @Query("SELECT * FROM SMS LIMIT 5")
+    fun get5SMS(): List<SMS>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insert(sms: SMS)
 
