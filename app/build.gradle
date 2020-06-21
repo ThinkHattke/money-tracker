@@ -47,4 +47,7 @@ dependencies {
     //Logging
     implementation 'com.jakewharton.timber:timber:4.7.1'
 
+    // Charts and graphs
+    implementation 'com.github.AnyChart:AnyChart-Android:1.1.2'
+
 }

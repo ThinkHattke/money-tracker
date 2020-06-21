@@ -8,6 +8,11 @@ import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.anychart.AnyChart
+import com.anychart.chart.common.dataentry.DataEntry
+import com.anychart.chart.common.dataentry.ValueDataEntry
+import com.anychart.enums.Align
+import com.anychart.enums.LegendLayout
 import com.gaurav.moneytracker.DB.SMS
 import com.gaurav.moneytracker.DB.SMSDB
 import kotlinx.android.synthetic.main.activity_main.*
@@ -17,6 +22,7 @@ import java.util.regex.Matcher
 import java.util.regex.Pattern
 import kotlin.collections.ArrayList
 import kotlin.concurrent.thread
+
 
 class MainActivity : AppCompatActivity() {
 
@@ -110,14 +116,7 @@ class MainActivity : AppCompatActivity() {
                     transactionalSMS.add(sms)
                 }
             }
-            runOnUiThread {
-                sms.text = ""
-                for (i in listSMS) {
-                    var text = sms.text
-                    text = "$text"+i.sender+"\n"+i.amount+"\n"+i.type+"\n\n\n"
-                    sms.text = text
-                }
-            }
+
         }
     }
 
@@ -157,7 +156,23 @@ class MainActivity : AppCompatActivity() {
         }
 
        runOnUiThread {
-           sms.text = "Credit: $creditAmount\nDebit: $debitAmount"
+
+           val Pie = AnyChart.pie()
+           val data = mutableListOf<DataEntry>()
+           data.add(ValueDataEntry("Expense", debitAmount))
+           data.add(ValueDataEntry("Income", creditAmount))
+
+           Pie.data(data)
+           Pie.title("Total transaction made in last 30 days")
+           Pie.legend().title().enabled(true)
+
+           Pie.legend()
+               .position("center-bottom")
+               .itemsLayout(LegendLayout.HORIZONTAL)
+               .align(Align.CENTER)
+
+           pie_chart.setChart(Pie)
+
        }
 
     }
