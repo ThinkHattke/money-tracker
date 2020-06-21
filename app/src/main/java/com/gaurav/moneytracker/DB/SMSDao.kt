@@ -23,4 +23,7 @@ interface SMSDao {
     @Query("SELECT * FROM SMS WHERE tag = :tag")
     fun getSMSByTag(tag: String): List<SMS>
 
+    @Query("SELECT * FROM SMS WHERE type = :type")
+    fun getSMSByType(type: String): List<SMS>
+
 }

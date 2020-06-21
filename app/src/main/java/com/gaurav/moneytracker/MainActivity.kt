@@ -22,7 +22,6 @@ class MainActivity : AppCompatActivity() {
 
     val pattern = Regex("(?=.*[Aa]ccount.*|.*[Aa]/[Cc].*|.*[Aa][Cc][Cc][Tt].*|.*[Cc][Aa][Rr][Dd].*)(?=.*[Cc]redit.*|.*[Dd]ebit.*)(?=.*[Ii][Nn][Rr].*|.*[Rr][Ss].*)")
     val amountPattern = Regex("(?i)(?:(?:RS|INR|MRP)\\.?\\s?)(\\d+(:?\\,\\d+)?(\\,\\d+)?(\\.\\d{1,2})?)")
-
     var key_credit_search = arrayOf(
         "(credited)",
         "(received)",
@@ -37,15 +36,11 @@ class MainActivity : AppCompatActivity() {
         "(credited)(.*?)(in)(\\s)",
         "(credited)(.*?)(to)(\\s)"
     )
-
     var key_debit_search = arrayOf(
         "(made)", "(debited)", "(using)", "(paid)", "(purchase)", "(withdrawn)", "(done)",
         "(credited)(.*?)(from)(\\s)", "(sent)(.*?)(from)(\\s)", "(\\s)(received)(.*?)(from)(\\s)",
         "(Sales\\sDraft)"
     )
-
-    val cardPattern = Regex("(?i)(?:\\smade on|ur|made a\\s|in\\*)([A-Za-z]*\\s?-?\\s[A-Za-z]*\\s?-?\\s[A-Za-z]*\\s?-?)")
-
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -72,12 +67,37 @@ class MainActivity : AppCompatActivity() {
                 contentResolver.query(uriSMSURI, null, filter, null, null)
             while (cur!!.moveToNext()) {
 
-                val address = cur.getString(cur.getColumnIndex("address"))
                 val body = cur.getString(cur.getColumnIndexOrThrow("body"))
-                smsList.add(SMS(0, body, address))
+
+                if(pattern.containsMatchIn(body)) {
+
+                    val address = cur.getString(cur.getColumnIndex("address"))
+                    val date = cur.getString(cur.getColumnIndex("date"))
+
+                    var amount = extractTransAmount(body)?:""
+//                    if(amountPattern.containsMatchIn(body)) {
+//                        amount = amountPattern.find(body)?.value?:""
+//                    }
+
+                    var type = ""
+                    val isDeposit = validateTransType(key_debit_search, body)
+                    val isCredit = validateTransType(key_credit_search, body)
+                    if(isDeposit) {
+                        type = "Debit"
+                    } else if(isCredit) {
+                        type = "Credit"
+                    }
+
+                    if(amount.isNotEmpty() && type.isNotEmpty()) {
+                        smsList.add(SMS(date, body, address, date, amount, type))
+                    }
+
+                }
+
             }
+            cur.close()
             SMSDB.getDatabase(this).SMSDao().insertAll(smsList)
-            filterSMS()
+            getSMSTypes()
         }
     }
 
@@ -94,21 +114,7 @@ class MainActivity : AppCompatActivity() {
                 sms.text = ""
                 for (i in listSMS) {
                     var text = sms.text
-                    var amount = ""
-                    val isDeposit = validateTransType(key_debit_search, i.body)
-                    val isCredit = validateTransType(key_credit_search, i.body)
-                    var type = ""
-                    if(isDeposit) {
-                        type = "Debit"
-                    } else if(isCredit) {
-                        type = "Credit"
-                    }
-                    if(amountPattern.containsMatchIn(i.body)) {
-                        amount = amountPattern.find(i.body)?.value?:""
-                    }
-                    if(type.isNotEmpty() && amount.isNotEmpty()) {
-                        text = "$text"+i.sender+"\n"+amount+"\n"+type+"\n\n\n"
-                    }
+                    text = "$text"+i.sender+"\n"+i.amount+"\n"+i.type+"\n\n\n"
                     sms.text = text
                 }
             }
@@ -130,6 +136,66 @@ class MainActivity : AppCompatActivity() {
         val result =
             ContextCompat.checkSelfPermission(act!!, Manifest.permission.READ_SMS)
         return result == PackageManager.PERMISSION_GRANTED
+    }
+
+    fun getSMSTypes() {
+        val smsDao = SMSDB.getDatabase(this).SMSDao()
+        val creditSMS = smsDao.getSMSByType("Credit")
+        val debitSMS = smsDao.getSMSByType("Debit")
+
+        var creditAmount = 0.0
+        var debitAmount = 0.0
+
+        for (sms in creditSMS) {
+            val amount = sms.amount.toDouble()
+            creditAmount = creditAmount.plus(amount)
+        }
+
+        for (sms in debitSMS) {
+            val amount = sms.amount.toDouble()
+            debitAmount = debitAmount.plus(amount)
+        }
+
+       runOnUiThread {
+           sms.text = "Credit: $creditAmount\nDebit: $debitAmount"
+       }
+
+    }
+
+    private fun extractTransAmount(
+        smsMsg: String
+    ): String? {
+        var smsMsg = smsMsg
+        var reqMatch = ""
+        smsMsg = smsMsg.replace(",", "")
+        val searchFor = "((\\s)?##SEARCH4CURRENCY##(.)?(\\s)?((\\d+)(\\.\\d+)?))"
+        val getGroup = intArrayOf(5)
+        var indx = 0
+
+        val searchCurrency: Array<String> = arrayOf("INR", "Rs")
+        try {
+            for (element in searchCurrency) {
+                val p = Pattern.compile(
+                    searchFor.replace(
+                        "##SEARCH4CURRENCY##",
+                        element
+                    )
+                )
+                val m = p.matcher(smsMsg)
+                if (reqMatch.isEmpty()) {
+                    while (m.find()) {
+                        if (indx == 0) {
+                            reqMatch = m.group(getGroup[0]).trim { it <= ' ' }
+                            break
+                        }
+                        indx += 1
+                    }
+                }
+            }
+        } catch (e: java.lang.Exception) {
+            Timber.e(e, "extractTransAmount")
+        }
+        return reqMatch
     }
 
     private fun validateTransType(
