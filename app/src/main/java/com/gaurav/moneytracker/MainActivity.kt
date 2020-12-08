@@ -16,7 +16,9 @@ import com.anychart.enums.Align
 import com.anychart.enums.LegendLayout
 import com.gaurav.moneytracker.DB.SMS
 import com.gaurav.moneytracker.DB.SMSDB
+import kotlinx.android.synthetic.main.activity_details.*
 import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.android.synthetic.main.activity_main.month
 import timber.log.Timber
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
