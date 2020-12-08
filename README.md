@@ -4,7 +4,7 @@ Kotlin implementation for fetching and all SMS, classifying transactional SMS an
 
 Regex is used to identify transaction SMS and for sorting.
 
-![Home Screen](https://imgur.com/T8cNsPD)
+![Home Screen](https://imgur.com/T8cNsPD.png)
 
 ## ✌️ Contributing
 
